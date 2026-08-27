@@ -35,6 +35,20 @@ Feedback is 5 chars of `B`/`Y`/`G` (black · yellow · green), left → right.
 `applyFeedback` throws on invalid input or on feedback that contradicts every
 remaining candidate.
 
+## CLI
+
+Play a live Wordle game on a real board (mobile web, the NYT app, a friend)
+while the solver proposes the next guess:
+
+```bash
+cargo run --release --bin play
+```
+
+Each turn it prints a guess; type the board's real 5-char feedback
+(`B`/`Y`/`G` for black/yellow/green) and it narrows the candidates. Empty
+input means the guess was the answer. The solver maxes at 5 guesses, within
+Wordle's 6-guess limit.
+
 ## Algorithm
 
 Each guess is scored by the sum of squares of pattern-bucket sizes over the

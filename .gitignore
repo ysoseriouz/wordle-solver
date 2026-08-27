@@ -1,0 +1,10 @@
+# target & build output
+/target
+pkg/
+*.tgz
+
+# node
+node_modules/
+
+# misc
+*.log

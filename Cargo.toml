@@ -1,0 +1,30 @@
+[package]
+name = "wordle-solver"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance Wordle solver (Rust → wasm) SDK"
+license = "MIT"
+
+[lib]
+name = "wordle_solver"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# Feature-gated wasm-bindgen bindings (off for native tests/benches)
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2", optional = true }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+criterion = "0.5"
+
+[[bench]]
+name = "solve"
+harness = false
+
+[profile.release]
+lto = true
+opt-level = 3

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: Swatinem/rust-cache@v2
+      - name: fmt
+        run: cargo fmt --check
+      - name: clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: test
+        run: cargo test
+      - name: wasm build
+        run: |
+          cargo install wasm-pack --locked
+          wasm-pack build --target web --release --out-dir pkg --features wasm
+      - name: wasm tests (node)
+        run: wasm-pack test --node --features wasm
+      - name: size gate
+        run: |
+          test $(wc -c < pkg/*.wasm) -le $((300 * 1024)) || \
+            { echo "wasm exceeds 300 KB budget"; exit 1; }

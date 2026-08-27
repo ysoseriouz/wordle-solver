@@ -19,11 +19,11 @@ npm i wordle-solver
 import { createSolver } from "wordle-solver";
 
 const s = createSolver();
-console.log(s.suggestGuess());       // "roate"
-s.applyFeedback("roate", "BYBBY");   // record the real result
-console.log(s.remainingCount());     // how many words are still possible
+console.log(s.suggestGuess()); // "roate"
+s.applyFeedback("roate", "BYBBY"); // record the real result
+console.log(s.remainingCount()); // how many words are still possible
 console.log(s.remainingCandidates());
-s.reset();                           // start a new game
+s.reset(); // start a new game
 ```
 
 API:
@@ -48,11 +48,11 @@ full answer set.
 
 Exhaustive play over **all 2,315 answer words** (cargo test -- --ignored):
 
-| metric | value |
-|--------|-------|
-| Success rate | **100%** (2315/2315) |
-| Max guesses | **5** (Wordle limit is 6) |
-| Average guesses | **3.656** |
+| metric          | value                     |
+| --------------- | ------------------------- |
+| Success rate    | **100%** (2315/2315)      |
+| Max guesses     | **5** (Wordle limit is 6) |
+| Average guesses | **3.656**                 |
 
 ## Design notes
 

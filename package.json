@@ -1,28 +1,36 @@
 {
-  "name": "wordle-solver",
-  "version": "0.1.0",
-  "description": "High-performance Wordle solver (Rust → WASM). Suggests optimal guesses and filters candidates from real feedback.",
-  "type": "module",
-  "types": "./index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./index.d.ts",
-      "default": "./pkg/wordle_solver.js"
-    }
-  },
-  "files": [
-    "pkg",
-    "index.d.ts",
-    "README.md"
-  ],
-  "keywords": ["wordle", "solver", "wasm", "rust"],
-  "license": "MIT",
-  "sideEffects": false,
-  "engines": {
-    "node": ">=18"
-  },
-  "scripts": {
-    "build": "wasm-pack build --target web --release --out-dir pkg --features wasm",
-    "test:wasm": "wasm-pack test --node --features wasm"
-  }
+	"name": "wordle-solver",
+	"version": "0.1.0",
+	"description": "High-performance Wordle solver (Rust → WASM). Suggests optimal guesses and filters candidates from real feedback.",
+	"type": "module",
+	"types": "./index.d.ts",
+	"exports": {
+		".": {
+			"types": "./index.d.ts",
+			"default": "./pkg/wordle_solver.js"
+		}
+	},
+	"files": [
+		"pkg",
+		"index.d.ts",
+		"README.md"
+	],
+	"keywords": [
+		"wordle",
+		"solver",
+		"wasm",
+		"rust"
+	],
+	"license": "MIT",
+	"sideEffects": false,
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"build": "wasm-pack build --target web --release --out-dir pkg --features wasm",
+		"test:wasm": "wasm-pack test --node --features wasm"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.10"
+	}
 }

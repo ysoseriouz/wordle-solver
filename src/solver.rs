@@ -41,7 +41,25 @@ pub struct Solver {
     answers: Box<[Word]>,
     allowed: Box<[Word]>,
     survivors: Survivors,
+    /// Clone-play mode: Answers until feedback eliminates every official
+    /// answer, then Allowed (clones accept allowed words as answers).
+    mode: Mode,
+    /// Applied (guess, feedback) constraints, replayed when switching mode.
+    history: Vec<(Word, Pattern)>,
     scorer: Scorer,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Mode {
+    Answers,
+    Allowed,
+}
+
+fn active_list<'a>(answers: &'a [Word], allowed: &'a [Word], mode: Mode) -> &'a [Word] {
+    match mode {
+        Mode::Answers => answers,
+        Mode::Allowed => allowed,
+    }
 }
 
 impl Solver {
@@ -51,6 +69,8 @@ impl Solver {
             answers: lists.answers.clone(),
             allowed: lists.allowed.clone(),
             survivors: Survivors::all(lists.answers.len()),
+            mode: Mode::Answers,
+            history: Vec::new(),
             scorer: Scorer::new(),
         }
     }
@@ -61,13 +81,15 @@ impl Solver {
             return None;
         }
 
+        let base = active_list(&self.answers, &self.allowed, self.mode);
+
         // Turn 1: answer set unconstrained → hard-coded opener (D5).
-        if n == self.answers.len() {
+        if n == self.answers.len() && self.mode == Mode::Answers {
             return Some(BEST_OPENER.to_string());
         }
 
         if n == 1 {
-            return Some(self.answers[self.survivors.iter().next().unwrap()].to_string());
+            return Some(base[self.survivors.iter().next().unwrap()].to_string());
         }
 
         // Scan the full guess space: with small survivor sets a discriminating
@@ -79,8 +101,8 @@ impl Solver {
         // (Word u32 value == lex order for fixed-5 a-z words.) `best` guarded below.
         let mut best: Option<(u32, bool, Word)> = None;
         for &guess in &candidates {
-            let score = self.scorer.score(guess, &self.survivors, &self.answers);
-            let is_survivor = self.answers.binary_search(&guess).is_ok();
+            let score = self.scorer.score(guess, &self.survivors, base);
+            let is_survivor = base.binary_search(&guess).is_ok();
             let cand = (score, is_survivor, guess);
             let take = match best {
                 None => true,
@@ -99,7 +121,18 @@ impl Solver {
             return Err(Error::UnknownWord);
         }
         let p = parse_feedback(feedback).ok_or(Error::BadFeedback)?;
-        self.survivors.retain_matching(w, p, &self.answers);
+        self.history.push((w, p));
+        self.survivors
+            .retain_matching(w, p, active_list(&self.answers, &self.allowed, self.mode));
+        if self.survivors.count() == 0 && self.mode == Mode::Answers {
+            // No official answer fits — the game may be a clone accepting
+            // allowed words as answers. Replay every constraint on that list.
+            self.mode = Mode::Allowed;
+            self.survivors = Survivors::all(self.allowed.len());
+            for &(g, pp) in &self.history {
+                self.survivors.retain_matching(g, pp, &self.allowed);
+            }
+        }
         if self.survivors.count() == 0 {
             return Err(Error::Contradiction);
         }
@@ -111,14 +144,17 @@ impl Solver {
     }
 
     pub fn remaining_words(&self) -> Vec<String> {
+        let base = active_list(&self.answers, &self.allowed, self.mode);
         self.survivors
             .iter()
-            .map(|a| self.answers[a].to_string())
+            .map(|a| base[a].to_string())
             .collect()
     }
 
     pub fn reset(&mut self) {
         self.survivors = Survivors::all(self.answers.len());
+        self.mode = Mode::Answers;
+        self.history.clear();
     }
 }
 
@@ -181,5 +217,19 @@ mod tests {
         assert!(s.remaining_words().contains(&"crane".to_string()));
         s.reset();
         assert_eq!(s.remaining_count(), 2_315);
+    }
+
+    #[test]
+    fn clone_play_falls_back_to_allowed() {
+        let mut s = Solver::new();
+        s.apply_feedback("roate", "BBBYY").unwrap();
+        s.apply_feedback("sleet", "BBGGY").unwrap();
+        // "tweed"→GGGGB matches no official answer (previously an error),
+        // but matches allowed-only words under clone rules.
+        s.apply_feedback("tweed", "GGGGB").unwrap();
+        assert_eq!(
+            s.remaining_words(),
+            vec!["tween".to_string(), "tweep".to_string()]
+        );
     }
 }

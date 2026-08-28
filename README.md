@@ -33,7 +33,8 @@ API:
 
 Feedback is 5 chars of `B`/`Y`/`G` (black · yellow · green), left → right.
 `applyFeedback` throws on invalid input or on feedback that contradicts every
-remaining candidate.
+remaining candidate. If the official answer list is exhausted but guesses (a
+clone's answer space) still fit, it falls back to those automatically.
 
 ## CLI
 

@@ -8,92 +8,61 @@ to shrink the candidate set — repeat until solved.
 - 🚀 First guess is a precomputed optimal opener (`roate`); later turns run a
   full maximum-information search over all 12,972 legal guesses.
 - ⚛️ Works in any JS context (plain ESM, Vite, Astro, Node 18+).
+- 📦 Distributed as an npm tarball on every release — no registry account.
+
+## Install
+
+```json
+{
+  "dependencies": {
+    "wordle-solver": "https://github.com/ysoseriouz/wordle-solver/releases/download/v0.1.0/wordle-solver-0.1.0.tgz"
+  }
+}
+```
+
+See [docs/INSTALL.md](docs/INSTALL.md) for npm, bun, pnpm, yarn, direct
+download, and building from source.
 
 ## Quickstart
 
-```bash
-npm i wordle-solver
-```
-
 ```js
-import { createSolver } from "wordle-solver";
+import init, { createSolver } from "wordle-solver";
 
+await init(); // load the wasm (one-time)
 const s = createSolver();
 console.log(s.suggestGuess()); // "roate"
 s.applyFeedback("roate", "BYBBY"); // record the real result
 console.log(s.remainingCount()); // how many words are still possible
-console.log(s.remainingCandidates());
 s.reset(); // start a new game
 ```
 
-API:
-`createSolver() → Solver`, `solver.suggestGuess() → string | null`,
-`solver.applyFeedback(guess, feedback)`, `solver.remainingCount()`,
-`solver.remainingCandidates()`, `solver.reset()`.
-
 Feedback is 5 chars of `B`/`Y`/`G` (black · yellow · green), left → right.
-`applyFeedback` throws on invalid input or on feedback that contradicts every
-remaining candidate. If the official answer list is exhausted but guesses (a
-clone's answer space) still fit, it falls back to those automatically.
+Full API reference: [docs/API.md](docs/API.md).
 
 ## CLI
 
-Play a live Wordle game on a real board (mobile web, the NYT app, a friend)
-while the solver proposes the next guess:
+Play a live Wordle game on a real board while the solver proposes the next
+guess:
 
 ```bash
 cargo run --release --bin play
 ```
 
 Each turn it prints a guess; type the board's real 5-char feedback
-(`B`/`Y`/`G` for black/yellow/green) and it narrows the candidates. Empty
-input means the guess was the answer. The solver maxes at 5 guesses, within
-Wordle's 6-guess limit.
+(`B`/`Y`/`G`) and it narrows the candidates. Empty input means the guess was
+the answer. Maxes at 5 guesses, within Wordle's 6-guess limit.
 
-## Algorithm
+## Docs
 
-Each guess is scored by the sum of squares of pattern-bucket sizes over the
-current candidates: `Σ nᵢ²`. Minimizing this is equivalent to maximizing
-Shannon entropy `H = -Σ p·log p` over the same distribution, but needs zero
-floating point or log calls, so it is exact and fast. The first turn is
-short-circuited to a precomputed optimal opener rather than re-searching a
-full answer set.
+| Doc | For |
+| --- | --- |
+| [docs/INSTALL.md](docs/INSTALL.md) | Installing (package managers, direct, source) |
+| [docs/INTEGRATE.md](docs/INTEGRATE.md) | Wiring the wasm into your site (Vite, Astro, Node, MIME) |
+| [docs/API.md](docs/API.md) | JS API reference |
+| [docs/ALGORITHM.md](docs/ALGORITHM.md) | Scoring, results, design notes |
+| [docs/BUILD.md](docs/BUILD.md) | Building, testing, benchmarking |
+| [docs/RELEASE.md](docs/RELEASE.md) | Cutting a release (maintainers) |
 
-## Results
+## License
 
-Exhaustive play over **all 2,315 answer words** (cargo test -- --ignored):
-
-| metric          | value                     |
-| --------------- | ------------------------- |
-| Success rate    | **100%** (2315/2315)      |
-| Max guesses     | **5** (Wordle limit is 6) |
-| Average guesses | **3.656**                 |
-
-## Design notes
-
-- **Pattern evaluation** is on-the-fly and bit-parallel (O(1) per word pair),
-  instead of a precomputed ~30 MB guess×answer table. Grease match the whole
-  word in registers, and the small persistent table is avoided — keeping the
-  WASM download tiny. A `pattern-table` feature can add the full table for
-  native benchmarking if it ever pays off.
-- **Scoring** uses integer `Σ nᵢ²` rather than the literal Shannon formula;
-  see "Algorithm" — they choose the same guess ordering. A `shannon` feature
-  keeps the literal formula for cross-checking.
-- **Guess space** is always the full legal list, even when few candidates
-  remain: with a small set a discriminating non-answer word (e.g. splitting
-  the `-ound` family) can be required, and scoring is cheap there anyway.
-
-## Dev
-
-```bash
-cargo test                # unit + 200-answer sample (fast)
-cargo test --release -- --ignored   # exhaustive 2315-answer suite
-cargo clippy --all-targets -- -D warnings
-cargo fmt --check
-cargo run --release --bin best_opener   # recompute the opening constant
-npm run build             # wasm-pack → pkg/
-```
-
-Word list provenance: the canonical NYT Wordle answer list (2,315) and legal
-guess list (12,972) as published in the widely-mirrored `wordle-words` npm
-package; vendored under `data/`.
+MIT — see [LICENSE](LICENSE).
